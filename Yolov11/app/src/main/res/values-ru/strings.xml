@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">YOLO-Android-Tool</string>
+    <string name="speed_info">Скорость (в миллисекундах)</string>
+    <string name="preprocess_label">Предобработка: </string>
+    <string name="inference_label">Инференс: </string>
+    <string name="postprocess_label">Постобработка: </string>
+    <string name="image_saved">Изображение сохранено в Pictures</string>
+    <string name="error_saving">Ошибка сохранения: %1$s</string>
+    <string name="no_image">Нет изображения для сохранения</string>
+    <string name="capture_button">Снять</string>
+    <string name="segmented_saved">Изображение с сегментацией сохранено</string>
+    <string name="original_saved">Оригинальное изображение сохранено</string>
+    <string name="folder_name">YOLO-App</string>
+</resources>

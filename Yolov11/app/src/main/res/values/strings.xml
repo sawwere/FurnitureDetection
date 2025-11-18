@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">YOLO-Android-Tool</string>
+    <string name="speed_info">Speed (in milliseconds)</string>
+    <string name="preprocess_label">Preprocess: </string>
+    <string name="inference_label">Inference: </string>
+    <string name="postprocess_label">Postprocess: </string>
+    <string name="image_saved">Image saved to Pictures</string>
+    <string name="error_saving">Error saving image: %1$s</string>
+    <string name="no_image">No image to save</string>
+    <string name="capture_button">Capture</string>
+    <string name="segmented_saved">Segmented image saved</string>
+    <string name="original_saved">Original image saved</string>
+    <string name="folder_name">YOLO-App</string>
+</resources>
