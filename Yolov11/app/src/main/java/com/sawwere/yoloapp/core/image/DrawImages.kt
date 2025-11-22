@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.applyCanvas
 import com.sawwere.yoloapp.R
@@ -33,10 +34,13 @@ class DrawImages(private val context: Context) {
     }
 
     private val labelPaint = Paint().apply {
-        color = Color.valueOf(0.0f, 0f, 0f).toArgb()
-        strokeWidth = 2F
-        style = Paint.Style.STROKE
+        color = Color.WHITE
+        textSize = 42f
+        style = Paint.Style.FILL
+        isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
     }
+
 
     operator fun invoke(
         imageWidth: Int,
@@ -48,7 +52,9 @@ class DrawImages(private val context: Context) {
         results.forEach { detection ->
             combined.applyCanvas {
                 drawRect(detection.bbox, boxPaint)
-                drawText(detection.confidence.toString(), detection.bbox.left, detection.bbox.top, labelPaint)
+//                drawText(detection.confidence.toString(), detection.bbox.left, detection.bbox.top, labelPaint)
+                val label = "${detection.className} ${(detection.confidence * 100).toInt()}%"
+                drawText(label, detection.bbox.left, detection.bbox.top - 10f, labelPaint)
             }
         }
 //        results.forEach { result ->

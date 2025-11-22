@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.Log
-import com.sawwere.yoloapp.core.detection.MetaData.extractNamesFromMetadata
+//import com.sawwere.yoloapp.core.detection.MetaData.extractNamesFromMetadata
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
@@ -45,7 +45,9 @@ class DetectionComponent(
         val model = FileUtil.loadMappedFile(context, modelPath)
         interpreter = Interpreter(model, options)
 
-        labels.addAll(extractNamesFromMetadata(model))
+
+         labels = MetaData.extractNamesFromLabelFile(context, labelPath ?: "temp_meta.txt").toMutableList()
+//        labels.addAll(extractNamesFromMetadata(model))
 //        if (labels.isEmpty()) {
 //            if (labelPath == null) {
 //                message("Model not contains metadata, provide LABELS_PATH in Constants.kt")
@@ -195,6 +197,8 @@ class DetectionComponent(
             val confidence = element[4]
 
             if (confidence < CONFIDENCE_THRESHOLD) continue
+            val classId = element[5].toInt()
+            val className = labels.getOrNull(classId) ?: "unknown"
 
             val left = element[0] * imageWidth
             val top = element[1] * imageHeight
@@ -204,6 +208,7 @@ class DetectionComponent(
             detections.add(
                 Detection(
                     classId = element[5].toInt(),
+                    className = className,
                     confidence = confidence,
                     bbox = RectF(left, top, right, bottom)
                 )
@@ -365,6 +370,7 @@ class DetectionComponent(
 
     data class Detection(
         val classId: Int,
+        val className: String,
         val confidence: Float,
         val bbox: RectF // [left, top, right, bottom] в пикселях
     )
