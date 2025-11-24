@@ -2,9 +2,12 @@ package com.sawwere.yoloapp.core.detection
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.Log
+import com.sawwere.yoloapp.core.detection.MetaData.extractNamesFromLabelFile
 import com.sawwere.yoloapp.core.detection.MetaData.extractNamesFromMetadata
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
@@ -14,6 +17,7 @@ import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import java.nio.ByteBuffer
+import kotlin.math.min
 
 class DetectionComponent(
     context: Context,
@@ -46,14 +50,15 @@ class DetectionComponent(
         interpreter = Interpreter(model, options)
 
         labels.addAll(extractNamesFromMetadata(model))
-//        if (labels.isEmpty()) {
-//            if (labelPath == null) {
-//                message("Model not contains metadata, provide LABELS_PATH in Constants.kt")
-//                labels.addAll(MetaData.TEMP_CLASSES)
-//            } else {
-//                labels.addAll(extractNamesFromLabelFile(context, labelPath))
-//            }
-//        }
+        labels = MetaData.extractNamesFromLabelFile(context, labelPath ?: "temp_meta.txt").toMutableList()
+        if (labels.isEmpty()) {
+            if (labelPath == null) {
+                message("Model not contains metadata, provide LABELS_PATH in Constants.kt")
+                labels.addAll(MetaData.TEMP_CLASSES)
+            } else {
+                labels.addAll(extractNamesFromLabelFile(context, labelPath))
+            }
+        }
 
         val inputShape = interpreter.getInputTensor(0)?.shape()
         val outputShape0 = interpreter.getOutputTensor(0)?.shape()
@@ -108,37 +113,10 @@ class DetectionComponent(
     }
 
     fun invoke(frame: Bitmap) {
-//        if (tensorWidth == 0 || tensorHeight == 0
-//            || numChannel == 0 || numElements == 0
-//            || xPoints == 0 || yPoints == 0 || masksNum == 0) {
-//            instanceSegmentationListener.onError("Interpreter not initialized properly")
-//            return
-//        }
 
         var preProcessTime = SystemClock.uptimeMillis()
 
         val imageBuffer = preProcess(frame)
-
-//        val finalDetections = applyNMS(rawDetections)
-//
-//        finalDetections.forEach { detection ->
-//            val rect = scaleBoundingBox(detection, frame.width, frame.height)
-//        }
-
-//        val coordinatesBuffer = TensorBuffer.createFixedSize(
-//            intArrayOf(1 , numChannel, numElements),
-//            OUTPUT_IMAGE_TYPE
-//        )
-//
-//        val maskProtoBuffer = TensorBuffer.createFixedSize(
-//            intArrayOf(1, xPoints, yPoints, masksNum),
-//            OUTPUT_IMAGE_TYPE
-//        )
-////
-//        val outputBuffer = mapOf<Int, Any>(
-//            0 to coordinatesBuffer.buffer.rewind(),
-//            1 to maskProtoBuffer.buffer.rewind()
-//        )
 //
         preProcessTime = SystemClock.uptimeMillis() - preProcessTime
 //
@@ -152,20 +130,6 @@ class DetectionComponent(
         interfaceTime = SystemClock.uptimeMillis() - interfaceTime
 //
         var postProcessTime = SystemClock.uptimeMillis()
-//
-//        val bestBoxes = bestBox(coordinatesBuffer.floatArray) ?: run {
-//            instanceSegmentationListener.onEmpty()
-//            return
-//        }
-//
-//        val maskProto = reshapeMaskOutput(maskProtoBuffer.floatArray)
-//
-//        val segmentationResults = bestBoxes.map {
-//            SegmentationResult(
-//                box = it,
-//                mask = getFinalMask(frame.width, frame.height, it, maskProto)
-//            )
-//        }
 
         val segmentationResults = processOutput(
             imageWidth = frame.width,
@@ -193,8 +157,15 @@ class DetectionComponent(
 
         for (element in batch) {
             val confidence = element[4]
+            if (confidence< 0.01) {
+                continue
+            }
+            val classId = element[5].toInt()
+            val className = labels.getOrNull(classId) ?: "unknown"
+            if (confidence < CONFIDENCE_THRESHOLD) {
+                continue
+            }
 
-            if (confidence < CONFIDENCE_THRESHOLD) continue
 
             val left = element[0] * imageWidth
             val top = element[1] * imageHeight
@@ -204,134 +175,13 @@ class DetectionComponent(
             detections.add(
                 Detection(
                     classId = element[5].toInt(),
+                    className = className,
                     confidence = confidence,
                     bbox = RectF(left, top, right, bottom)
                 )
             )
         }
         return detections
-    }
-
-//    fun applyNMS(detections: List<Detection>): List<Detection> {
-//        val sorted = detections.sortedByDescending { it.confidence }
-//        val selected = mutableListOf<Detection>()
-//
-//        for (detection in sorted) {
-//            var overlap = false
-//            for (selectedDetection in selected) {
-//                if (calculateIoU(
-//                        detection, selectedDetection
-//                ) > IOU_THRESHOLD) {
-//                    overlap = true
-//                    break
-//                }
-//            }
-//            if (!overlap) selected.add(detection)
-//        }
-//        return selected
-//    }
-//
-//    fun scaleBoundingBox(detection: Detection, imageWidth: Int, imageHeight: Int): RectF {
-//        val x = detection.x * imageWidth
-//        val y = detection.y * imageHeight
-//        val width = detection.width * imageWidth
-//        val height = detection.height * imageHeight
-//        return RectF(
-//            x - width / 2,  // left
-//            y - height / 2, // top
-//            x + width / 2,  // right
-//            y + height / 2  // bottom
-//        )
-//    }
-
-//    private fun bestBox(array: FloatArray) : List<Output0>? {
-//
-//        val output0List = mutableListOf<Output0>()
-//
-//        for (c in 0 until numElements) {
-//            var maxConf = CONFIDENCE_THRESHOLD
-//            var maxIdx = -1
-//            var currentInd = 4
-//            var arrayIdx = c + numElements * currentInd
-//
-//            while (currentInd < (numChannel - masksNum)){
-//                if (array[arrayIdx] > maxConf) {
-//                    maxConf = array[arrayIdx]
-//                    maxIdx = currentInd - 4
-//                }
-//                currentInd++
-//                arrayIdx += numElements
-//            }
-//
-//            if (maxConf > CONFIDENCE_THRESHOLD) {
-//                val clsName = labels[maxIdx]
-//                val cx = array[c] // 0
-//                val cy = array[c + numElements] // 1
-//                val w = array[c + numElements * 2]
-//                val h = array[c + numElements * 3]
-//                val x1 = cx - (w/2F)
-//                val y1 = cy - (h/2F)
-//                val x2 = cx + (w/2F)
-//                val y2 = cy + (h/2F)
-//                if (x1 < 0F || x1 > 1F) continue
-//                if (y1 < 0F || y1 > 1F) continue
-//                if (x2 < 0F || x2 > 1F) continue
-//                if (y2 < 0F || y2 > 1F) continue
-//
-//                val maskWeight = mutableListOf<Float>()
-//                while (currentInd < numChannel){
-//                    maskWeight.add(array[arrayIdx])
-//                    currentInd++
-//                    arrayIdx += numElements
-//                }
-//
-//                output0List.add(
-//                    Output0(
-//                        x1 = x1, y1 = y1, x2 = x2, y2 = y2,
-//                        cx = cx, cy = cy, w = w, h = h,
-//                        cnf = maxConf, cls = maxIdx, clsName = clsName,
-//                        maskWeight = maskWeight
-//                    )
-//                )
-//            }
-//        }
-//
-//        if (output0List.isEmpty()) return null
-//
-//        return applyNMS(output0List)
-//    }
-
-//    private fun applyNMS(output0List: List<Output0>) : MutableList<Output0> {
-//        val sortedBoxes = output0List.sortedByDescending { it.cnf }.toMutableList()
-//        val selectedBoxes = mutableListOf<Output0>()
-//
-//        while(sortedBoxes.isNotEmpty()) {
-//            val first = sortedBoxes.first()
-//            selectedBoxes.add(first)
-//            sortedBoxes.remove(first)
-//
-//            val iterator = sortedBoxes.iterator()
-//            while (iterator.hasNext()) {
-//                val nextBox = iterator.next()
-//                val iou = calculateIoU(first, nextBox)
-//                if (iou >= IOU_THRESHOLD) {
-//                    iterator.remove()
-//                }
-//            }
-//        }
-//
-//        return selectedBoxes
-//    }
-
-    private fun calculateIoU(box1: Detection, box2: Detection): Float {
-        val x1 = maxOf(box1.bbox.left, box2.bbox.left)
-        val y1 = maxOf(box1.bbox.top, box2.bbox.top)
-        val x2 = minOf(box1.bbox.right, box2.bbox.right)
-        val y2 = minOf(box1.bbox.bottom, box2.bbox.bottom)
-        val intersectionArea = maxOf(0F, x2 - x1) * maxOf(0F, y2 - y1)
-        val box1Area = box1.bbox.width() * box1.bbox.height()
-        val box2Area = box2.bbox.width() * box2.bbox.height()
-        return intersectionArea / (box1Area + box2Area - intersectionArea)
     }
 
     private fun preProcess(frame: Bitmap): Array<ByteBuffer> {
@@ -355,16 +205,16 @@ class DetectionComponent(
     }
 
     companion object {
-        private const val INPUT_MEAN = 0f
-        private const val INPUT_STANDARD_DEVIATION = 255f
+        private const val INPUT_MEAN = 128f
+        private const val INPUT_STANDARD_DEVIATION = 128f
         private val INPUT_IMAGE_TYPE = DataType.FLOAT32
         private val OUTPUT_IMAGE_TYPE = DataType.FLOAT32
-        private const val CONFIDENCE_THRESHOLD = 0.8F
-        private const val IOU_THRESHOLD = 0.5F
+        private const val CONFIDENCE_THRESHOLD = 0.7F
     }
 
     data class Detection(
         val classId: Int,
+        val className: String,
         val confidence: Float,
         val bbox: RectF // [left, top, right, bottom] в пикселях
     )
