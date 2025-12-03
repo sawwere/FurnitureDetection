@@ -1,0 +1,15 @@
+names:
+- bed
+- chair
+- sofa
+- table
+nc: 4
+roboflow:
+  license: CC BY 4.0
+  project: furniture-detection-dg1lo
+  url: https://universe.roboflow.com/myworkspace-gcdng/furniture-detection-dg1lo/dataset/2
+  version: 2
+  workspace: myworkspace-gcdng
+test: D:\3_term\detection\FurnitureDetection\training\NNMA\dataset\test\images
+train: D:\3_term\detection\FurnitureDetection\training\NNMA\dataset\train\images
+val: D:\3_term\detection\FurnitureDetection\training\NNMA\dataset\valid\images
